@@ -3,7 +3,7 @@ import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { InteractionStatus } from "@azure/msal-browser";
 import { loginRequest, groups } from "@/lib/msalConfig";
 import { fetchGroupMembers, fetchMe, getTeamsCallLink, type GroupMember } from "@/lib/graphApi";
-import { Phone, LogOut, Users, Loader2, ShieldCheck, UserRound } from "lucide-react";
+import { Phone, PhoneOff, Users, Loader2, ShieldCheck, UserRound } from "lucide-react";
 
 const STATIC_CONTACTS = [
   { name: "Agenti/Corrieri", email: "monica.pillon@astidental.com" },
@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState("");
+  const [callingDepartment, setCallingDepartment] = useState<string | null>(null);
 
   const getAccessToken = useCallback(async () => {
     const account = accounts[0];
@@ -63,12 +64,22 @@ export default function Dashboard() {
     loadData();
   }, [isAuthenticated, accounts, getAccessToken]);
 
-  const handleLogin = () => {
-    instance.loginRedirect(loginRequest).catch(console.error);
+  const handleCall = (email: string, name: string) => {
+    setCallingDepartment(name);
+    window.open(getTeamsCallLink(email, name), "_blank");
   };
 
-  const handleLogout = () => {
-    instance.logoutRedirect().catch(console.error);
+  const handleGroupCall = (emails: string, name: string) => {
+    setCallingDepartment(name);
+    window.open(getTeamsCallLink(emails, name), "_blank");
+  };
+
+  const handleEndCall = () => {
+    setCallingDepartment(null);
+  };
+
+  const handleLogin = () => {
+    instance.loginRedirect(loginRequest).catch(console.error);
   };
 
   if (inProgress === InteractionStatus.Startup || inProgress === InteractionStatus.HandleRedirect) {
@@ -95,6 +106,41 @@ export default function Dashboard() {
             Accedi con Microsoft
           </button>
         </div>
+      </div>
+    );
+  }
+
+  // ── SCHERMATA CHIAMATA IN CORSO ──
+  if (callingDepartment) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-black">
+        {/* Animazione pallini */}
+        <div className="mb-12 flex gap-3">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-4 w-4 rounded-full bg-white animate-bounce"
+              style={{ animationDelay: `${i * 0.2}s` }}
+            />
+          ))}
+        </div>
+
+        {/* Testo principale */}
+        <h1 className="mb-4 text-4xl font-bold tracking-widest text-white uppercase">
+          Chiamata in corso
+        </h1>
+        <p className="mb-2 text-xl text-white/70 tracking-widest uppercase">
+          Attendere...
+        </p>
+
+        {/* Bottone termina */}
+        <button
+          onClick={handleEndCall}
+          className="mt-20 flex items-center gap-3 rounded-full bg-red-600 px-10 py-5 text-lg font-semibold text-white transition-colors hover:bg-red-700 active:scale-95"
+        >
+          <PhoneOff className="h-6 w-6" />
+          Termina
+        </button>
       </div>
     );
   }
@@ -140,16 +186,13 @@ export default function Dashboard() {
             const contact = STATIC_CONTACTS.find((c) => c.name === "Agenti/Corrieri");
             if (!contact) return null;
             return (
-              <div
-                key={contact.name}
-                className="rounded-lg border border-border bg-card p-8 text-center shadow-sm"
-              >
+              <div key={contact.name} className="rounded-lg border border-border bg-card p-8 text-center shadow-sm">
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                   <UserRound className="h-8 w-8 text-primary" />
                 </div>
                 <h2 className="mb-6 text-lg font-semibold text-card-foreground">{contact.name}</h2>
                 <button
-                  onClick={() => { window.open(getTeamsCallLink(contact.email), "_blank"); }}
+                  onClick={() => handleCall(contact.email, contact.name)}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                 >
                   <Phone className="h-4 w-4" />
@@ -159,40 +202,36 @@ export default function Dashboard() {
             );
           })()}
 
-          {/* Secondo: gruppi dinamici (Amministrazione primo) */}
+          {/* Gruppi dinamici */}
           {!loading && !error && groupsData.map((group) => (
-            <div
-              key={group.name}
-              className="rounded-lg border border-border bg-card p-8 text-center shadow-sm"
-            >
+            <div key={group.name} className="rounded-lg border border-border bg-card p-8 text-center shadow-sm">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                 <Users className="h-8 w-8 text-primary" />
               </div>
               <h2 className="mb-1 text-lg font-semibold text-card-foreground">{group.name}</h2>
               <p className="mb-6 text-sm text-muted-foreground">{group.members.length} membri</p>
-              <a
-                href={getTeamsCallLink(group.members.map((m) => m.mail || m.userPrincipalName).join(","))}
-                target="_blank"
+              <button
+                onClick={() => handleGroupCall(
+                  group.members.map((m) => m.mail || m.userPrincipalName).join(","),
+                  group.name
+                )}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <Phone className="h-4 w-4" />
                 Chiama {group.name}
-              </a>
+              </button>
             </div>
           ))}
 
-          {/* Poi gli altri contatti statici */}
+          {/* Altri contatti statici */}
           {STATIC_CONTACTS.filter((c) => c.name !== "Agenti/Corrieri").map((contact) => (
-            <div
-              key={contact.name}
-              className="rounded-lg border border-border bg-card p-8 text-center shadow-sm"
-            >
+            <div key={contact.name} className="rounded-lg border border-border bg-card p-8 text-center shadow-sm">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                 <UserRound className="h-8 w-8 text-primary" />
               </div>
               <h2 className="mb-6 text-lg font-semibold text-card-foreground">{contact.name}</h2>
               <button
-                onClick={() => { window.open(getTeamsCallLink(contact.email), "_blank"); }}
+                onClick={() => handleCall(contact.email, contact.name)}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <Phone className="h-4 w-4" />
