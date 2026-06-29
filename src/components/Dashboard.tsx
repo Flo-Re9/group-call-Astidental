@@ -8,7 +8,7 @@ import { Phone, PhoneOff, Users, Loader2, ShieldCheck, UserRound } from "lucide-
 const STATIC_CONTACTS = [
   { name: "Agenti/Corrieri", email: "monica.pillon@astidental.com" },
   { name: "Acquisti", email: "luca.nicodemo@astidental.com" },
-  { name: "Customer Care", email: "althea.borio@astidental.com" },
+  { name: "Customer Care", email: "elisa.morriello@astidental.com" },
   { name: "CED", email: "florentin.rachita@astidental.com" },
   { name: "Assistenza Tecnica", email: "bianca.lucaci@astidental.com" },
   { name: "Commerciale e Marketing", email: "sergio.campini@astidental.com" },
