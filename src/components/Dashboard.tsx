@@ -64,24 +64,16 @@ export default function Dashboard() {
     loadData();
   }, [isAuthenticated, accounts, getAccessToken]);
 
-  const handleCall = (email: string, name: string) => {
+const handleCall = (email: string, name: string) => {
     setCallingDepartment(name);
     window.open(getTeamsCallLink(email, name), "_blank");
-     setTimeout(() => {
-      setCallingDepartment(name);
-      window.focus();
-    }, 3000);
   };
 
   const handleGroupCall = (emails: string, name: string) => {
     setCallingDepartment(name);
     window.open(getTeamsCallLink(emails, name), "_blank");
-     setTimeout(() => {
-      setCallingDepartment(name);
-      window.focus();
-    }, 3000);
   };
-
+  
   const handleEndCall = () => {
     setCallingDepartment(null);
   };
