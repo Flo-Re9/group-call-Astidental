@@ -66,12 +66,12 @@ export default function Dashboard() {
 
 const handleCall = (email: string, name: string) => {
     setCallingDepartment(name);
-    window.open(getTeamsCallLink(email, name), "_blank");
+    window.location.href = getTeamsCallLink(email, name);
   };
 
   const handleGroupCall = (emails: string, name: string) => {
     setCallingDepartment(name);
-    window.open(getTeamsCallLink(emails, name), "_blank");
+    window.location.href = getTeamsCallLink(emails, name);
   };
   
   const handleEndCall = () => {
