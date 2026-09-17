@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { InteractionStatus } from "@azure/msal-browser";
 import { loginRequest, groups } from "@/lib/msalConfig";
@@ -27,6 +27,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState("");
   const [callingDepartment, setCallingDepartment] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getAccessToken = useCallback(async () => {
     const account = accounts[0];
@@ -64,17 +65,28 @@ export default function Dashboard() {
     loadData();
   }, [isAuthenticated, accounts, getAccessToken]);
 
-const handleCall = (email: string, name: string) => {
+  const startCallTimer = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    // 30 secondi = 30000 millisecondi
+    timerRef.current = setTimeout(() => {
+      setCallingDepartment(null);
+    }, 30000);
+  };
+
+  const handleCall = (email: string, name: string) => {
     setCallingDepartment(name);
-    window.location.href = getTeamsCallLink(email, name);
+    window.open(getTeamsCallLink(email, name), "_blank");
+    startCallTimer();
   };
 
   const handleGroupCall = (emails: string, name: string) => {
     setCallingDepartment(name);
-    window.location.href = getTeamsCallLink(emails, name);
+    window.open(getTeamsCallLink(emails, name), "_blank");
+    startCallTimer();
   };
-  
+
   const handleEndCall = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
     setCallingDepartment(null);
   };
 
@@ -114,7 +126,6 @@ const handleCall = (email: string, name: string) => {
   if (callingDepartment) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-black">
-        {/* Animazione pallini */}
         <div className="mb-12 flex gap-3">
           {[0, 1, 2].map((i) => (
             <div
@@ -124,16 +135,12 @@ const handleCall = (email: string, name: string) => {
             />
           ))}
         </div>
-
-        {/* Testo principale */}
         <h1 className="mb-4 text-4xl font-bold tracking-widest text-white uppercase">
           Chiamata in corso
         </h1>
         <p className="mb-2 text-xl text-white/70 tracking-widest uppercase">
           Attendere...
         </p>
-
-        {/* Bottone termina */}
         <button
           onClick={handleEndCall}
           className="mt-20 flex items-center gap-3 rounded-full bg-red-600 px-10 py-5 text-lg font-semibold text-white transition-colors hover:bg-red-700 active:scale-95"
@@ -181,7 +188,6 @@ const handleCall = (email: string, name: string) => {
         )}
 
         <div className="grid gap-6 sm:grid-cols-2">
-          {/* Primo: Agenti/Corrieri */}
           {(() => {
             const contact = STATIC_CONTACTS.find((c) => c.name === "Agenti/Corrieri");
             if (!contact) return null;
@@ -202,7 +208,6 @@ const handleCall = (email: string, name: string) => {
             );
           })()}
 
-          {/* Gruppi dinamici */}
           {!loading && !error && groupsData.map((group) => (
             <div key={group.name} className="rounded-lg border border-border bg-card p-8 text-center shadow-sm">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
@@ -223,7 +228,6 @@ const handleCall = (email: string, name: string) => {
             </div>
           ))}
 
-          {/* Altri contatti statici */}
           {STATIC_CONTACTS.filter((c) => c.name !== "Agenti/Corrieri").map((contact) => (
             <div key={contact.name} className="rounded-lg border border-border bg-card p-8 text-center shadow-sm">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
