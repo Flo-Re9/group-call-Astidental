@@ -27,7 +27,9 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState("");
   const [callingDepartment, setCallingDepartment] = useState<string | null>(null);
+  const [showCallScreen, setShowCallScreen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const screenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getAccessToken = useCallback(async () => {
     const account = accounts[0];
@@ -65,29 +67,63 @@ export default function Dashboard() {
     loadData();
   }, [isAuthenticated, accounts, getAccessToken]);
 
-  const startCallTimer = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    // 30 secondi = 30000 millisecondi
-    timerRef.current = setTimeout(() => {
-      setCallingDepartment(null);
-    }, 30000);
-  };
+  // Quando il tablet torna sulla schermata dell'app, riparte il timer
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && callingDepartment) {
+        // Mostra la schermata nera quando torna visibile
+        setShowCallScreen(true);
+        // Avvia timer per tornare alla dashboard dopo 2 minuti
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+          setCallingDepartment(null);
+          setShowCallScreen(false);
+        }, 120000);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [callingDepartment]);
 
   const handleCall = (email: string, name: string) => {
     setCallingDepartment(name);
+    setShowCallScreen(false);
     window.open(getTeamsCallLink(email, name), "_blank");
-    startCallTimer();
+    // Mostra la schermata nera dopo 30 secondi
+    if (screenTimerRef.current) clearTimeout(screenTimerRef.current);
+    screenTimerRef.current = setTimeout(() => {
+      setShowCallScreen(true);
+      // Timer di 2 minuti per tornare alla dashboard
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        setCallingDepartment(null);
+        setShowCallScreen(false);
+      }, 120000);
+    }, 30000);
   };
 
   const handleGroupCall = (emails: string, name: string) => {
     setCallingDepartment(name);
+    setShowCallScreen(false);
     window.open(getTeamsCallLink(emails, name), "_blank");
-    startCallTimer();
+    // Mostra la schermata nera dopo 30 secondi
+    if (screenTimerRef.current) clearTimeout(screenTimerRef.current);
+    screenTimerRef.current = setTimeout(() => {
+      setShowCallScreen(true);
+      // Timer di 2 minuti per tornare alla dashboard
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        setCallingDepartment(null);
+        setShowCallScreen(false);
+      }, 120000);
+    }, 30000);
   };
 
   const handleEndCall = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
+    if (screenTimerRef.current) clearTimeout(screenTimerRef.current);
     setCallingDepartment(null);
+    setShowCallScreen(false);
   };
 
   const handleLogin = () => {
@@ -123,7 +159,7 @@ export default function Dashboard() {
   }
 
   // ── SCHERMATA CHIAMATA IN CORSO ──
-  if (callingDepartment) {
+  if (callingDepartment && showCallScreen) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-black">
         <div className="mb-12 flex gap-3">
@@ -146,7 +182,7 @@ export default function Dashboard() {
           className="mt-20 flex items-center gap-3 rounded-full bg-red-600 px-10 py-5 text-lg font-semibold text-white transition-colors hover:bg-red-700 active:scale-95"
         >
           <PhoneOff className="h-6 w-6" />
-          Termina
+          Torna al menu
         </button>
       </div>
     );
